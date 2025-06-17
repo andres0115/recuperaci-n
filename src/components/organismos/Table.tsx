@@ -172,7 +172,7 @@ const GlobalTable = <T extends { key: React.Key }>({
         <TableHeader>
           {columns.map((col) => (
             <TableColumn 
-              key={String(col.key)}
+              key={`header-${String(col.key)}`}
               className={col.sortable ? 'cursor-pointer select-none' : ''}
               onClick={() => col.sortable && handleSortChange(col.key as keyof T)}
             >
@@ -191,9 +191,9 @@ const GlobalTable = <T extends { key: React.Key }>({
           emptyContent={<div className="text-emerald-600">No se encontraron registros</div>}
         >
           {(item: T) => (
-            <TableRow key={String(item.key)} className="hover:bg-blue-50">
+            <TableRow key={`row-${String(item.key)}`} className="hover:bg-blue-50">
               {columns.map((col) => (
-                <TableCell key={String(col.key)}>
+                <TableCell key={`cell-${String(item.key)}-${String(col.key)}`}>
                   {col.render ? col.render(item) :
                     (() => {
                       const value = item[col.key as keyof T];
