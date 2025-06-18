@@ -1,65 +1,59 @@
-import { useState } from "react";
+// useSede.ts
+import { createSedeApi, deleteSedeApi, findAllSedesApi, updateSedeApi } from "@/api/sede.api";
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 
 export function useSedes() {
-  const [sedes, setSedes] = useState<Sede[]>([
-    {
-      key: 1,
-      id: 1,
-      nombre: "Sede 1",
-      centroFormacionNombre: "Centro de formación A",
-      centroFormacionId: 1,
+  const queryClient = useQueryClient();
+
+  // GET
+  const { data: sedes, isLoading, isError, refetch } = useQuery<Sede[]>({
+    queryKey: ["sede"],
+    queryFn: findAllSedesApi,
+     select: (data) =>
+      data.map((centro) => ({
+        ...centro,
+        key: centro.id_sede, // agregamos la key ara el datatable
+      })),
+  });
+
+  // CREATE
+  const createMutation = useMutation({
+    mutationFn: createSedeApi,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sede"] });
     },
-    {
-      key: 2,
-      id: 2,
-      nombre: "Sede 2",
-      centroFormacionNombre: "Centro de formación A",
-      centroFormacionId: 1,
+  });
+
+  // UPDATE
+  const updateMutation = useMutation({
+    mutationFn: updateSedeApi,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sede"] });
     },
-  ]);
+  });
 
-  const [centrosFormacion, setCentrosFormacion] = useState<CentroFormacion[]>([
-    { id: 1, nombre: "Centro de formación A" },
-    { id: 2, nombre: "Centro de formación B" },
-    { id: 3, nombre: "Centro de formación C" },
-  ]);
-
-  const addSede = (newSede: SaveSede) => {
-    const nextId =
-      sedes.length > 0 ? Math.max(...sedes.map((s) => s.id)) + 1 : 1;
-
-    const findCentro = centrosFormacion.find(
-      (centro) => centro.id === newSede.centroFormacionId
-    );
-    const newItem: Sede = {
-      ...newSede,
-      id: nextId,
-      key: nextId,
-      centroFormacionNombre: findCentro?.nombre ?? "",
-    };
-    setSedes((prev) => [...prev, newItem]);
-  };
-
-  const updateSede = (id: number, updated: Partial<SaveSede>) => {
-    setSedes((prev) =>
-      prev.map((sede) => (sede.id === id ? { ...sede, ...updated } : sede))
-    );
-      console.log("Sede updated:", sedes);
-  };
-
-  const deleteSede = (id: number) => {
-    setSedes((prev) => prev.filter((sede) => sede.id !== id));
-  };
-
-  const getSedeById = (id: number): Sede | undefined =>
-    sedes.find((sede) => sede.id === id);
+  // DELETE
+  const deleteMutation = useMutation({
+    mutationFn: deleteSedeApi,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sede"] });
+    },
+  });
 
   return {
     sedes,
-    centrosFormacion,
-    addSede,
-    updateSede,
-    deleteSede,
-    getSedeById,
+    isLoading,
+    isError,
+    refetch,
+    createSede: createMutation.mutate,
+    updateSede: updateMutation.mutate,
+    deleteSede: deleteMutation.mutate,
+    createStatus: createMutation.status,
+    updateStatus: updateMutation.status,
+    deleteStatus: deleteMutation.status,
   };
 }

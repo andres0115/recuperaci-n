@@ -1,5 +1,5 @@
 
-import { Action } from "@/models/action";
+import { Action } from "@/enums/action";
 import { Button, Form, Input, Select, SelectItem } from "@heroui/react";
 import React from "react";
 
@@ -24,8 +24,9 @@ const SedeForm = ({ actionType, centrosFormacion, initialData,
                 e.preventDefault();
                 const data = Object.fromEntries(new FormData(e.currentTarget));
                 if (onSave) onSave({
+                    id_sede: initialData?.id_sede,
                     nombre: data.name as string,
-                    centroFormacionId: parseInt(data.centroFormacionId as string, 10)
+                    centro_formacion_id: data.centroFormacionId as any
                 });
             }}
         >
@@ -41,11 +42,11 @@ const SedeForm = ({ actionType, centrosFormacion, initialData,
                 isRequired
                 labelPlacement="outside"
                 name="centroFormacionId"
-                defaultSelectedKeys={initialData?.centroFormacionId?.toString() ?? ""}
+                defaultSelectedKeys={initialData?.centro_formacion_id?.toString() ?? ""}
                 placeholder="Seleccione un centro de formación"
             >
                 {centrosFormacion.map((centro) => (
-                    <SelectItem key={centro.id}>
+                    <SelectItem key={centro.id_centro}>
                         {centro.nombre}
                     </SelectItem>
                 ))}
