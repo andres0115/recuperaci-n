@@ -33,7 +33,7 @@ axiosInstance.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       clearToken();
-      window.location.href = '/iniciosesion';
+      window.location.href = '/';
     }
     return Promise.reject(error);
   }

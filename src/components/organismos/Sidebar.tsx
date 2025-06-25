@@ -13,13 +13,10 @@ const Sidebar = () => {
   const { logout } = useAuth();
 
   const confirmLogout = () => {
-    // Remove credentials and token
     logout();
-    // Redirect to login page
     navigate('/');
   };
 
-  // Función para verificar si algún elemento de un grupo está activo
   const isGroupActive = (items: any[] | undefined) => {
     return items
       ? items.some((item) => location.pathname === item.path)

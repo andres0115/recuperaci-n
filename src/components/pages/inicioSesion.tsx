@@ -8,7 +8,6 @@ const InicioSesion: React.FC = () => {
   const { login, loading, error } = useAuth();
   const [loginError, setLoginError] = useState<string | null>(error);
 
-  // Define form fields for login
   const loginFields: FormField[] = [
     {
       key: 'login',
@@ -24,22 +23,22 @@ const InicioSesion: React.FC = () => {
     },
   ];
 
-  // Handle form submission
   const handleSubmit = async (values: LoginCredentials) => {
     setLoginError(null);
-    const success = await login(values);
-    if (!success && error) {
-      setLoginError(error);
+    try {
+      await login(values);
+    } catch (err) {
+      setLoginError('Credenciales incorrectas');
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-emerald-50 to-emerald-100 p-4">
-      <Card className="w-full max-w-md mx-auto bg-white shadow-lg rounded-xl overflow-hidden">
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-800 to-slate-900 p-4">
+      <Card className="w-full max-w-md mx-auto bg-slate-700 shadow-lg rounded-xl overflow-hidden border border-slate-600">
         <div className="p-6">
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-emerald-600 mb-2">Bienvenido</h1>
-            <p className="text-gray-600">Ingresa tus credenciales para continuar</p>
+            <h1 className="text-2xl font-bold text-emerald-400 mb-2">Bienvenido</h1>
+            <p className="text-gray-300">Ingresa tus credenciales para continuar</p>
           </div>
 
           {loginError && (
@@ -55,9 +54,9 @@ const InicioSesion: React.FC = () => {
             className="space-y-4"
           />
 
-          <div className="mt-6 text-center text-sm text-gray-500">
+          <div className="mt-6 text-center text-sm text-gray-300">
             <p>Credenciales de prueba:</p>
-            <p className="font-mono bg-gray-100 p-2 rounded mt-1">Usuario: victor | Contraseña: 123456</p>
+            <p className="font-mono bg-slate-600 p-2 rounded mt-1 text-gray-200">Usuario: victor | Contraseña: 123456</p>
           </div>
         </div>
       </Card>
