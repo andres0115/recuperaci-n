@@ -1,5 +1,5 @@
 export type Acceso = {
-    id_acceso: number;
+    idAcceso: number;
     token: string;
     usuario: number;
     fecha_ingreso: string;

@@ -4,6 +4,7 @@ import { usePostUsuario } from '@/hooks/usuario/usePostUsuario';
 import { usePutUsuario } from '@/hooks/usuario/usePutUsuario';
 import { useGetRoles } from '@/hooks/roles/useGetRoles';
 import { useGetAplicativos } from '@/hooks/aplicativos/useGetAplicativos';
+import { useGetPersonas } from '@/hooks/personas/useGetPersona';
 import { Usuario } from '@/types/usuarios';
 import Boton from "@/components/atomos/Boton";
 import GlobalTable, { Column } from "@/components/organismos/Table";
@@ -17,13 +18,14 @@ const Usuarios = () => {
   const { actualizarUsuario } = usePutUsuario();
   const { roles, loading: loadingRoles } = useGetRoles();
   const { aplicativos, loading: loadingAplicativos } = useGetAplicativos();
+  const { personas, loading: loadingPersonas } = useGetPersonas();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState<Record<string, string>>({});
 
-  const columns: Column<Usuario & { key: number; rol_nombre?: string; aplicativo_nombre?: string }>[]= [
+  const columns: Column<Usuario & { key: number; rol_nombre?: string; aplicativo_nombre?: string; persona_nombre?: string }>[]= [
     { key: "login", label: "Usuario", filterable: true },
-    { key: "persona", label: "ID Persona", filterable: true },
+    { key: "persona_nombre", label: "Persona", filterable: true },
     { key: "aplicativo_nombre", label: "Aplicativo", filterable: true },
     { key: "rol_nombre", label: "Rol", filterable: true },
     { 
@@ -66,10 +68,28 @@ const Usuarios = () => {
     }));
   };
 
+  // Create safe options for select dropdown - Personas
+  const getPersonaOptions = () => {
+    if (!personas || personas.length === 0) {
+      return [];
+    }
+    
+    return personas.map(persona => ({
+      value: persona.id_persona?.toString() || '',
+      label: `${persona.nombre} ${persona.apellido} (${persona.documento})` || 'Sin nombre'
+    }));
+  };
+
   const formFieldsCreate: FormField[] = [
     { key: "login", label: "Usuario", type: "text", required: true },
     { key: "password", label: "Contraseña", type: "password", required: true },
-    { key: "persona_id", label: "ID Persona", type: "number", required: true },
+    { 
+      key: "persona_id", 
+      label: "Persona", 
+      type: "select", 
+      required: true,
+      options: getPersonaOptions()
+    },
     { 
       key: "aplicativo_id", 
       label: "Aplicativo", 
@@ -89,7 +109,13 @@ const Usuarios = () => {
   const formFieldsEdit: FormField[] = [
     { key: "login", label: "Usuario", type: "text", required: true },
     { key: "password", label: "Contraseña", type: "password", required: false },
-    { key: "persona_id", label: "ID Persona", type: "number", required: true },
+    { 
+      key: "persona_id", 
+      label: "Persona", 
+      type: "select", 
+      required: true,
+      options: getPersonaOptions()
+    },
     { 
       key: "aplicativo_id", 
       label: "Aplicativo", 
@@ -188,7 +214,7 @@ const Usuarios = () => {
           </Boton>
         </div>
 
-        {loading || loadingRoles || loadingAplicativos ? (
+        {loading || loadingRoles || loadingAplicativos || loadingPersonas ? (
           <p>Cargando datos...</p>
         ) : (
           <div className="w-full">
@@ -199,12 +225,14 @@ const Usuarios = () => {
                   ? usuarios.map((usuario: Usuario) => {
                       const rolInfo = roles?.find(r => r.id_rol === usuario.rol);
                       const aplicativoInfo = aplicativos?.find(a => a.idAplicativo === usuario.aplicativo);
+                      const personaInfo = personas?.find(p => p.id_persona === usuario.persona);
                       
                       return {
                         ...usuario,
                         key: usuario.id_usuario || Math.random(),
                         rol_nombre: rolInfo?.nombre || 'Desconocido',
-                        aplicativo_nombre: aplicativoInfo?.nombre || 'Desconocido'
+                        aplicativo_nombre: aplicativoInfo?.nombre || 'Desconocido',
+                        persona_nombre: personaInfo ? `${personaInfo.nombre} ${personaInfo.apellido}` : 'Desconocido'
                       };
                     })
                   : []

@@ -1,14 +1,12 @@
-import { useState } from "react";
+import { useState } from 'react';
 import { useGetPermisos } from '@/hooks/permisos/useGetPermisos';
 import { usePostPermiso } from '@/hooks/permisos/usePostPermiso';
 import { usePutPermiso } from '@/hooks/permisos/usePutPermiso';
+import { useDeletePermiso } from '@/hooks/permisos/useDeletePermiso';
 import { useGetUsuarios } from '@/hooks/usuario/useGetUsuarios';
 import { useGetRoles } from '@/hooks/roles/useGetRoles';
 import { useGetRutas } from '@/hooks/rutas/useGetRutas';
 import { permisos } from '@/types/permisos';
-import { Usuario } from '@/types/usuarios';
-import { Rol } from '@/types/roles';
-import { Ruta } from '@/types/rutas';
 import Boton from "@/components/atomos/Boton";
 import GlobalTable, { Column } from "@/components/organismos/Table";
 import Form, { FormField } from "@/components/organismos/Form";
@@ -19,6 +17,7 @@ const Permisos = () => {
   const { permisos, loading } = useGetPermisos();
   const { crearPermiso } = usePostPermiso();
   const { actualizarPermiso } = usePutPermiso();
+  const { eliminarPermiso } = useDeletePermiso();
   const { usuarios, loading: loadingUsuarios } = useGetUsuarios();
   const { roles, loading: loadingRoles } = useGetRoles();
   const { rutas, loading: loadingRutas } = useGetRutas();
@@ -41,6 +40,12 @@ const Permisos = () => {
           >
             Editar
           </Boton>
+          <Boton 
+            onClick={() => handleDelete(item.id_permiso)} 
+            className="bg-red-500 text-white px-2 py-1 text-xs"
+          >
+            Eliminar
+          </Boton>
         </div>
       )
     }
@@ -52,10 +57,17 @@ const Permisos = () => {
       return [];
     }
     
-    return usuarios.map((user: Usuario) => ({
-      value: user.id_usuario?.toString() || '',
-      label: user.login || 'Sin nombre'
-    }));
+    const options = usuarios.map((usuario: any) => {
+      // Usar idUsuario si existe, o id_usuario como fallback
+      const id = usuario.idUsuario || usuario.id_usuario;
+      return {
+        value: id?.toString() || '',
+        label: usuario.login || 'Sin nombre'
+      };
+    });
+    
+    console.log('Usuario options:', options);
+    return options;
   };
 
   const getRolOptions = () => {
@@ -63,10 +75,17 @@ const Permisos = () => {
       return [];
     }
     
-    return roles.map((rol: Rol) => ({
-      value: rol.id_rol?.toString() || '',
-      label: rol.nombre || 'Sin nombre'
-    }));
+    const options = roles.map((rol: any) => {
+      // Usar idRol si existe, o id_rol como fallback
+      const id = rol.idRol || rol.id_rol;
+      return {
+        value: id?.toString() || '',
+        label: rol.nombre || 'Sin nombre'
+      };
+    });
+    
+    console.log('Rol options:', options);
+    return options;
   };
 
   const getRutaOptions = () => {
@@ -74,10 +93,17 @@ const Permisos = () => {
       return [];
     }
     
-    return rutas.map((ruta: Ruta) => ({
-      value: ruta.id_ruta?.toString() || '',
-      label: ruta.nombre || 'Sin nombre'
-    }));
+    const options = rutas.map((ruta: any) => {
+      // Usar idRuta si existe, o id_ruta como fallback
+      const id = ruta.idRuta || ruta.id_ruta;
+      return {
+        value: id?.toString() || '',
+        label: ruta.nombre || 'Sin nombre'
+      };
+    });
+    
+    console.log('Ruta options:', options);
+    return options;
   };
 
   const formFieldsCreate: FormField[] = [
@@ -126,14 +152,38 @@ const Permisos = () => {
       required: true,
       options: getRutaOptions()
     },
-  ];
+  ]; 
 
   const handleSubmit = async (values: Record<string, string>) => {
     try {
+      console.log('handleSubmit recibió valores:', values);
+      
+      // Verificar que los valores existan
+      if (!values.usuario_id || !values.rol_id || !values.ruta_id) {
+        alert('Por favor seleccione valores para Usuario, Rol y Ruta');
+        return;
+      }
+      
       // Preparar los datos para enviar
       const usuarioId = parseInt(values.usuario_id);
       const rolId = parseInt(values.rol_id);
       const rutaId = parseInt(values.ruta_id);
+      
+      // Verificar que los IDs sean válidos
+      if (isNaN(usuarioId) || isNaN(rolId) || isNaN(rutaId)) {
+        alert('Por favor seleccione valores válidos para Usuario, Rol y Ruta');
+        return;
+      }
+      
+      // Verificar que los IDs existan en los arrays correspondientes
+      const usuarioExiste = Array.isArray(usuarios) ? usuarios.some((u: any) => (u.idUsuario || u.id_usuario) === usuarioId) : false;
+      const rolExiste = Array.isArray(roles) ? roles.some((r: any) => (r.idRol || r.id_rol) === rolId) : false;
+      const rutaExiste = Array.isArray(rutas) ? rutas.some((r: any) => (r.idRuta || r.id_ruta) === rutaId) : false;
+      
+      if (!usuarioExiste || !rolExiste || !rutaExiste) {
+        console.warn('Alguno de los IDs seleccionados no existe en los datos cargados');
+        // Continuamos de todos modos, ya que podría ser un problema de carga de datos
+      }
       
       if (editingId) {
         // Actualizar permiso existente
@@ -151,7 +201,8 @@ const Permisos = () => {
           rol: rolId,
           ruta: rutaId
         };
-
+        
+        console.log('Creando permiso con payload:', createPayload);
         await crearPermiso(createPayload);
         alert('Permiso creado con éxito');
       }
@@ -165,13 +216,59 @@ const Permisos = () => {
   };
 
   const handleEdit = (permiso: permisos & { usuario_nombre?: string; rol_nombre?: string; ruta_nombre?: string }) => {
+    // Extraer IDs de los objetos si son objetos, o usar directamente si son números
+    let usuarioId: number | undefined;
+    let rolId: number | undefined;
+    let rutaId: number | undefined;
+    
+    if (typeof permiso.usuario === 'object' && permiso.usuario !== null) {
+      // Usar tipado 'any' para evitar errores de TypeScript
+      const usuarioObj: any = permiso.usuario;
+      usuarioId = usuarioObj.idUsuario || usuarioObj.id_usuario;
+    } else {
+      usuarioId = permiso.usuario as number;
+    }
+    
+    if (typeof permiso.rol === 'object' && permiso.rol !== null) {
+      // Usar tipado 'any' para evitar errores de TypeScript
+      const rolObj: any = permiso.rol;
+      rolId = rolObj.idRol || rolObj.id_rol;
+    } else {
+      rolId = permiso.rol as number;
+    }
+    
+    if (typeof permiso.ruta === 'object' && permiso.ruta !== null) {
+      // Usar tipado 'any' para evitar errores de TypeScript
+      const rutaObj: any = permiso.ruta;
+      rutaId = rutaObj.idRuta || rutaObj.id_ruta;
+    } else {
+      rutaId = permiso.ruta as number;
+    }
+    
+    console.log('Editando permiso:', permiso);
+    console.log('IDs extraídos:', { usuarioId, rolId, rutaId });
+    
     setFormData({
-      usuario_id: permiso.usuario ? permiso.usuario.toString() : '',
-      rol_id: permiso.rol ? permiso.rol.toString() : '',
-      ruta_id: permiso.ruta ? permiso.ruta.toString() : ''
+      usuario_id: usuarioId ? usuarioId.toString() : '',
+      rol_id: rolId ? rolId.toString() : '',
+      ruta_id: rutaId ? rutaId.toString() : ''
     });
     setEditingId(permiso.id_permiso);
     setIsModalOpen(true);
+  };
+
+  // Función para eliminar un permiso
+  const handleDelete = async (id: number) => {
+    console.log('Eliminando permiso con ID:', id);
+    if (window.confirm('¿Está seguro que desea eliminar este permiso?')) {
+      try {
+        await eliminarPermiso(id);
+        alert('Permiso eliminado con éxito');
+      } catch (error) {
+        alert('Error al eliminar el permiso');
+        console.error(error);
+      }
+    }
   };
 
   // Función para crear un nuevo permiso
@@ -208,19 +305,26 @@ const Permisos = () => {
               columns={columns}
               data={
                 Array.isArray(permisos) 
-                  ? permisos.map((permiso: permisos) => ({
-                      ...permiso,
-                      key: permiso.id_permiso || Math.random(),
-                      usuario_nombre: permiso.usuario && Array.isArray(usuarios)
-                        ? (usuarios.find(user => user && user.id_usuario === permiso.usuario)?.login || 'Desconocido')
-                        : 'No asignado',
-                      rol_nombre: permiso.rol && Array.isArray(roles)
-                        ? (roles.find(rol => rol && rol.id_rol === permiso.rol)?.nombre || 'Desconocido')
-                        : 'No asignado',
-                      ruta_nombre: permiso.ruta && Array.isArray(rutas)
-                        ? (rutas.find(ruta => ruta && ruta.id_ruta === permiso.ruta)?.nombre || 'Desconocido')
-                        : 'No asignado'
-                    }))
+                  ? permisos.map((permiso: any) => {
+                      // Extraer información directamente de los objetos anidados
+                      const usuarioObj = typeof permiso.usuario === 'object' ? permiso.usuario : null;
+                      const rolObj = typeof permiso.rol === 'object' ? permiso.rol : null;
+                      const rutaObj = typeof permiso.ruta === 'object' ? permiso.ruta : null;
+                      
+                      // Logs para depurar cada permiso
+                      console.log(`Permiso ID: ${permiso.id_permiso}`);
+                      console.log(`Usuario en permiso:`, usuarioObj);
+                      console.log(`Rol en permiso:`, rolObj);
+                      console.log(`Ruta en permiso:`, rutaObj);
+                      
+                      return {
+                        ...permiso,
+                        key: permiso.id_permiso || Math.random(),
+                        usuario_nombre: usuarioObj?.login || 'Desconocido',
+                        rol_nombre: rolObj?.nombre || 'Desconocido',
+                        ruta_nombre: rutaObj?.nombre || 'Desconocido'
+                      };
+                    })
                   : []
               }
               defaultSortColumn="usuario_nombre"
@@ -245,6 +349,7 @@ const Permisos = () => {
                   onSubmit={handleSubmit}
                   buttonText={editingId ? "Actualizar" : "Crear"}
                   initialValues={formData}
+                  className="text-black"
                 />
               </div>
             </div>

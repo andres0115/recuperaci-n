@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useGetAplicativos } from '@/hooks/aplicativos/useGetAplicativos';
 import { usePostAplicativo } from '@/hooks/aplicativos/usePostAplicativos';
 import { usePutAplicativo } from '@/hooks/aplicativos/usePutAplicativos';
@@ -19,36 +19,23 @@ const Aplicativos = () => {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState<Record<string, string>>({});
 
-  // Validar y filtrar aplicativos que no tengan idAplicativo
-  const validAplicativos = (aplicativos || []).filter((app): app is Aplicativo => {
-    if (!app || typeof app.idAplicativo !== 'number') {
-      console.warn('Aplicativo inválido encontrado:', app);
-      return false;
-    }
-    return true;
-  });
-
-  const columns: Column<Aplicativo & { key: string }>[]= [
-    { key: "idAplicativo", label: "ID", filterable: true },
+  // Definir columnas para la tabla
+  const columns: Column<Aplicativo & { key: number }>[]= [
     { key: "nombre", label: "Nombre del Aplicativo", filterable: true },
     { 
       key: "acciones", 
       label: "Acciones", 
       render: (item) => (
-        <div className="flex gap-2" key={`actions-${item.idAplicativo}`}>
+        <div className="flex gap-2">
           <Boton 
             onClick={() => handleEdit(item)} 
             className="bg-yellow-500 text-white px-2 py-1 text-xs"
-            title={`ID: ${item.idAplicativo}`}
-            key={`edit-${item.idAplicativo}`}
           >
             Editar
           </Boton>
           <Boton 
-            onClick={() => handleDelete(item)} 
+            onClick={() => handleDelete(item.idAplicativo)} 
             className="bg-red-500 text-white px-2 py-1 text-xs"
-            title={`ID: ${item.idAplicativo}`}
-            key={`delete-${item.idAplicativo}`}
           >
             Eliminar
           </Boton>
@@ -57,55 +44,41 @@ const Aplicativos = () => {
     }
   ];
 
+  const formFieldsCreate: FormField[] = [
+    { key: "nombre_aplicativo", label: "Nombre del Aplicativo", type: "text", required: true },
+  ];
+  const formFieldsEdit: FormField[] = [
+    { key: "nombre_aplicativo", label: "Nombre del Aplicativo", type: "text", required: true },
+    
+  ];
+
   const handleSubmit = async (values: Record<string, string>) => {
     try {
-      if (!values.nombre_aplicativo || values.nombre_aplicativo.trim() === '') {
-        alert('El nombre del aplicativo es obligatorio');
-        return;
-      }
-
-      if (editingId) {
+      // Preparar los datos para enviar
+      
+      if (editingId !== null) {
         // Actualizar aplicativo existente
-        await actualizarAplicativo(editingId, { nombre: values.nombre_aplicativo.trim() });
+        console.log('Actualizando aplicativo con ID:', editingId);
+        await actualizarAplicativo(editingId, { nombre: values.nombre_aplicativo });
         alert('Aplicativo actualizado con éxito');
       } else {
-        // Crear nuevo aplicativo
         const createPayload = {
-          nombre: values.nombre_aplicativo.trim(),
-          idAplicativo: 0 // Este valor será reemplazado por el backend
+          nombre: values.nombre_aplicativo
         };
 
-        await crearAplicativo(createPayload);
+        await crearAplicativo(createPayload as any);
         alert('Aplicativo creado con éxito');
       }
       setIsModalOpen(false);
       setFormData({});
       setEditingId(null);
     } catch (error) {
-      console.error('Error:', error);
-      alert('Error al guardar el aplicativo. Por favor, intenta de nuevo.');
-    }
-  };
-
-  const handleDelete = async (aplicativo: Aplicativo) => {
-    if (!aplicativo || typeof aplicativo.idAplicativo !== 'number') {
-      console.error('Error: No se puede eliminar el aplicativo porque no tiene ID válido');
-      return;
-    }
-
-      try {
-        await eliminarAplicativo(aplicativo.idAplicativo);
-      } catch (error) {
-      console.error('Error al eliminar el aplicativo:', error);
+      alert('Error al guardar el aplicativo');
+      console.error(error);
     }
   };
 
   const handleEdit = (aplicativo: Aplicativo) => {
-    if (!aplicativo || typeof aplicativo.idAplicativo !== 'number') {
-      alert('Error: No se puede editar el aplicativo porque no tiene ID válido');
-      return;
-    }
-
     setFormData({
       nombre_aplicativo: aplicativo.nombre
     });
@@ -113,29 +86,26 @@ const Aplicativos = () => {
     setIsModalOpen(true);
   };
 
+  // Función para crear un nuevo aplicativo
   const handleCreate = () => {
     setFormData({});
     setEditingId(null);
     setIsModalOpen(true);
   };
 
-  const formFieldsCreate: FormField[] = [
-    { 
-      key: "nombre_aplicativo", 
-      label: "Nombre del Aplicativo", 
-      type: "text", 
-      required: true
+  // Función para eliminar un aplicativo
+  const handleDelete = async (id: number) => {
+    console.log('Eliminando aplicativo con ID:', id);
+    if (window.confirm('¿Está seguro que desea eliminar este aplicativo?')) {
+      try {
+        await eliminarAplicativo(id);
+        alert('Aplicativo eliminado con éxito');
+      } catch (error) {
+        alert('Error al eliminar el aplicativo');
+        console.error(error);
+      }
     }
-  ];
-
-  const formFieldsEdit: FormField[] = [
-    { 
-      key: "nombre_aplicativo", 
-      label: "Nombre del Aplicativo", 
-      type: "text", 
-      required: true
-    }
-  ];
+  };
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -143,58 +113,61 @@ const Aplicativos = () => {
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header />
         <div className="flex-1 overflow-y-auto p-6">
+        <div className="w-full">
+          <h1 className="text-xl font-bold mb-4">Gestión de Aplicativos</h1>
+        </div>
+      
+        <div>
+          <Boton
+            onClick={handleCreate}
+            className="bg-blue-500 text-white px-4 py-2 mb-4"
+          >
+            Crear Nuevo Aplicativo
+          </Boton>
+        </div>
+
+        {loading ? (
+          <p>Cargando aplicativos...</p>
+        ) : (
           <div className="w-full">
-            <h1 className="text-xl font-bold mb-4">Gestión de Aplicativos</h1>
+            <GlobalTable
+              columns={columns}
+              data={
+                // Asegurarnos de que cada elemento tenga un idAplicativo válido y único
+                aplicativos
+                  .filter(app => app && typeof app.idAplicativo === 'number')
+                  .map((app: Aplicativo) => ({
+                    ...app,
+                    key: app.idAplicativo
+                  }))
+              }
+              defaultSortColumn="nombre"
+            />
           </div>
-        
-          <div>
-            <Boton
-              onClick={handleCreate}
-              className="bg-blue-500 text-white px-4 py-2 mb-4"
-            >
-              Crear Nuevo Aplicativo
-            </Boton>
-          </div>
+        )}
 
-          {loading ? (
-            <p>Cargando aplicativos...</p>
-          ) : (
-            <div className="w-full">
-              <GlobalTable
-                columns={columns}
-                data={validAplicativos.map((app) => ({
-                  ...app,
-                  key: `aplicativo-${app.idAplicativo}`
-                }))}
-                defaultSortColumn="nombre"
-              />
-            </div>
-          )}
-
-          {isModalOpen && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="w-full max-w-lg">
-                <div className="bg-white p-6 rounded-lg shadow-lg w-full max-h-[90vh] overflow-y-auto relative">
-                  <button 
-                    onClick={() => setIsModalOpen(false)} 
-                    className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 transition-colors"
-                  >
-                    <span className="text-gray-800 font-bold">×</span>
-                  </button>
-                  
-                  <h2 className="text-lg font-bold mb-4 text-center">
-                    {editingId ? "Editar Aplicativo" : "Crear Nuevo Aplicativo"}
-                  </h2>
-                  <Form
-                    fields={editingId ? formFieldsEdit : formFieldsCreate}
-                    onSubmit={handleSubmit}
-                    buttonText={editingId ? "Actualizar" : "Crear"}
-                    initialValues={formData}
-                  />
-                </div>
+        {isModalOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="w-full max-w-lg">
+              <div className="bg-white p-6 rounded-lg shadow-lg w-full max-h-[90vh] overflow-y-auto relative">
+                {/* Botón X para cerrar en la esquina superior derecha */}
+                <button onClick={() => setIsModalOpen(false)} className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 transition-colors">
+                  <span className="text-gray-800 font-bold">×</span>
+                </button>
+                
+                <h2 className="text-lg font-bold mb-4 text-center">
+                  {editingId ? "Editar Aplicativo" : "Crear Nuevo Aplicativo"}
+                </h2>
+                <Form
+                  fields={editingId ? formFieldsEdit : formFieldsCreate}
+                  onSubmit={handleSubmit}
+                  buttonText={editingId ? "Actualizar" : "Crear"}
+                  initialValues={formData}
+                />
               </div>
-            </div> 
-          )}
+            </div>
+          </div> 
+        )}
         </div>
       </div>
     </div>

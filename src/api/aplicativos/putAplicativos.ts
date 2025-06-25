@@ -2,8 +2,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import axiosInstance from "@/api/axiosClient";
 import { Aplicativo } from "@/types/aplicativos";
 
-export async function putAplicativo(data: Partial<Aplicativo> & { id: number }): Promise<Aplicativo> {
-  const response = await axiosInstance.put(`/aplicativos/${data.id}`, data);
+export async function putAplicativo(data: Partial<Aplicativo> & { idAplicativo: number }): Promise<Aplicativo> {
+  const response = await axiosInstance.put(`/aplicativos/${data.idAplicativo}`, data);
   return response.data;
 }
 

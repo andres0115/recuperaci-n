@@ -1,42 +1,65 @@
-import { useState } from "react";
+// useCentrosFormacion.ts
+import {
+  createCentroFormacionApi,
+  deleteCentroFormacionApi,
+  findAllcentrosFormacionApi,
+  updateCentroFormacionApi,
+} from "@/api/centro-formacion.api";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export function useCentrosFormacion() {
-  const [centros, setCentros] = useState<CentroFormacion[]>([
-    { id: 1, nombre: "Centro de formación A" },
-    { id: 2, nombre: "Centro de formación B" },
-    { id: 3, nombre: "Centro de formación C" },
-  ]);
+  const queryClient = useQueryClient();
 
-  const addCentro = (newCentro: CentroFormacion) => {
-    const nextId =
-      centros.length > 0 ? Math.max(...centros.map((c) => c.id)) + 1 : 1;
-    const newItem: CentroFormacion = {
-      id: nextId,
-      nombre: newCentro.nombre,
-    };
-    setCentros((prev) => [...prev, newItem]);
-  };
+  // GET
+  const {
+    data: centros,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery<CentroFormacion[]>({
+    queryKey: ["centrosFormacion"],
+    queryFn: findAllcentrosFormacionApi,
+    select: (data) =>
+      data.map((centro) => ({
+        ...centro,
+        key: centro.id_centro, // agregamos la key ara el datatable
+      })),
+  });
 
-  const updateCentro = (id: number, updated: Partial<CentroFormacion>) => {
-    setCentros((prev) =>
-      prev.map((centro) =>
-        centro.id === id ? { ...centro, ...updated } : centro
-      )
-    );
-  };
+  // CREATE
+  const createMutation = useMutation({
+    mutationFn: createCentroFormacionApi,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["centrosFormacion"] });
+    },
+  });
 
-  const deleteCentro = (id: number) => {
-    setCentros((prev) => prev.filter((centro) => centro.id !== id));
-  };
+  // UPDATE
+  const updateMutation = useMutation({
+    mutationFn: updateCentroFormacionApi,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["centrosFormacion"] });
+    },
+  });
 
-  const getCentroById = (id: number): CentroFormacion | undefined =>
-    centros.find((centro) => centro.id === id);
+  // DELETE
+  const deleteMutation = useMutation({
+    mutationFn: deleteCentroFormacionApi,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["centrosFormacion"] });
+    },
+  });
 
   return {
     centros,
-    addCentro,
-    updateCentro,
-    deleteCentro,
-    getCentroById,
+    isLoading,
+    isError,
+    refetch,
+    createCentroFormacion: createMutation.mutate,
+    updateCentroFormacion: updateMutation.mutate,
+    deleteCentroFormacion: deleteMutation.mutate,
+    createStatus: createMutation.status,
+    updateStatus: updateMutation.status,
+    deleteStatus: deleteMutation.status,
   };
 }

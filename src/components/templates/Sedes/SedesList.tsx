@@ -9,7 +9,7 @@ interface SedesListProps {
 }
 const SedesList: React.FC<SedesListProps> = ({ onEdit, onDelete , sedes}) => {
     const columns: Column<Sede>[] = [
-        { key: 'id', label: 'ID', sortable: true, filterable: true },
+        { key: 'id_sede', label: 'ID', sortable: true, filterable: true },
         { key: 'nombre', label: 'Nombre', sortable: true, filterable: true },
         { key: 'centroFormacionNombre', label: 'Centro', sortable: true, filterable: true },
         {
@@ -30,7 +30,7 @@ const SedesList: React.FC<SedesListProps> = ({ onEdit, onDelete , sedes}) => {
                 columns={columns}
                 data={sedes}
                 rowsPerPage={5}
-                defaultSortColumn="id"
+                defaultSortColumn="id_sede"
                 defaultSortDirection="asc"
             />
         </div>

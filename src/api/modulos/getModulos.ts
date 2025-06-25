@@ -4,7 +4,6 @@ import { Modulo } from "@/types/modulos";
 
 export async function getModulos(): Promise<Modulo[]> {
   const response = await axiosInstance.get("/modulos");
-  console.log('Módulos recibidos del backend:', response.data);
   return response.data;
 }
 

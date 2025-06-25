@@ -2,8 +2,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import axiosInstance from "@/api/axiosClient";
 import { Acceso } from "@/types/accesos";
 
-export async function putAcceso(data: Partial<Acceso> & { id: number }): Promise<Acceso> {
-  const response = await axiosInstance.put(`/accesos/${data.id}`, data);
+export async function putAcceso(data: Partial<Acceso> & { idAcceso: number }): Promise<Acceso> {
+  const response = await axiosInstance.put(`/accesos/${data.idAcceso}`, data);
   return response.data;
 }
 

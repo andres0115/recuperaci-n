@@ -1,18 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import axiosInstance from "@/api/axiosClient";
-import { Aplicativo } from "@/types/aplicativos";
 
-export async function deleteAplicativo(id: number): Promise<void> {
-  if (!id) {
-    throw new Error('ID de aplicativo no válido');
-  }
-  
-  try {
-    await axiosInstance.delete(`/aplicativos/${id}`);
-  } catch (error) {
-    console.error('Error al eliminar el aplicativo:', error);
-    throw error;
-  }
+export async function deleteAplicativo(idAplicativo: number): Promise<void> {
+  await axiosInstance.delete(`/aplicativos/${idAplicativo}`);
 }
 
 export function useDeleteAplicativo() {
@@ -23,4 +13,4 @@ export function useDeleteAplicativo() {
       queryClient.invalidateQueries({ queryKey: ["aplicativos"] });
     },
   });
-} 
+}

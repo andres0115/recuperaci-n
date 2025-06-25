@@ -2,10 +2,6 @@ import Boton from '@/components/atomos/Boton';
 import GlobalTable, { Column } from '@/components/organismos/Table';
 import React from 'react';
 
-interface CentroFormacion {
-  id: number;
-  nombre: string;
-}
 
 interface CentroFormacionListProps {
   onEdit?: (item: CentroFormacion) => void;
@@ -15,7 +11,7 @@ interface CentroFormacionListProps {
 
 const CentroFormacionList: React.FC<CentroFormacionListProps> = ({ onEdit, onDelete, centros }) => {
   const columns: Column<CentroFormacion>[] = [
-    { key: 'id', label: 'ID', sortable: true, filterable: true },
+    { key: 'id_centro', label: 'ID', sortable: true, filterable: true },
     { key: 'nombre', label: 'Nombre', sortable: true, filterable: true },
     {
       key: 'acciones',
@@ -32,9 +28,9 @@ const CentroFormacionList: React.FC<CentroFormacionListProps> = ({ onEdit, onDel
   return (
         <GlobalTable
   columns={columns}
-  data={centros.map(c => ({ ...c, key: c.id }))}
+  data={centros.map(c => ({ ...c, key: c.id_centro }))}
   rowsPerPage={5}
-  defaultSortColumn="id"
+  defaultSortColumn="id_centro"
 />
 
     );

@@ -3,6 +3,6 @@ import { Aplicativo } from "@/types/aplicativos";
 
 export function usePutAplicativo() {
   const put = useApiPutAplicativo();
-  const actualizarAplicativo = async (id: number, data: Partial<Aplicativo>) => put.mutateAsync({ id, ...data });
+  const actualizarAplicativo = async (idAplicativo: number, data: Partial<Aplicativo>) => put.mutateAsync({ idAplicativo, ...data });
   return { actualizarAplicativo };
 }

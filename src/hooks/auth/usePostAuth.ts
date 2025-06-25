@@ -1,63 +1,61 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LoginFormValues } from '@/types/auth';
-import { login as apiLogin } from '@/api/auth/token';
+import { LoginCredentials } from '../../types/auth';
+import { login as apiLogin } from '../../api/auth/token';
 
-const TOKEN_COOKIE_KEY = 'token';
-const setTokenCookie = (token: string, maxAge = 3600) => {
-  document.cookie = `${TOKEN_COOKIE_KEY}=${token}; path=/; max-age=${maxAge}; samesite=strict`;
+// Token key for localStorage
+const TOKEN_KEY = 'token';
+
+// Check if user is authenticated
+const checkAuthenticated = (): boolean => {
+    return !!localStorage.getItem(TOKEN_KEY);
 };
 
-export function usePostAuth() {
-  const [validationErrors, setValidationErrors] = useState<Record<string, string> | null>(null);
-  const navigate = useNavigate();
-
-  const handleError = (error: any, defaultMsg: string) => {
-    const errorMessage = error?.response?.data?.message || defaultMsg;
-    return { success: false, errors: { general: errorMessage } };
-  };
-
-  const login = async (values: LoginFormValues) => {
-    setValidationErrors(null);
-    try {
-      // Crear el payload correcto para el backend (solo contrasena, no password)
-      const loginPayload = {
-        email: values.email,
-        contrasena: values.password // El backend espera 'contrasena', no 'password'
-      };
-      
-      console.log('[Auth] Intentando iniciar sesión con:', { email: loginPayload.email });
-      
-      const response = await apiLogin(loginPayload);
-      console.log('[Auth] Respuesta del servidor:', response);
-      
-      // La respuesta tiene formato: { token, user, message }
-      // No hay estructura anidada como se esperaba anteriormente
-      
-      if (response && response.token) {
-        console.log('[Auth] Token recibido, guardando en cookies y localStorage');
-        setTokenCookie(response.token);
+export const useAuth = () => {
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [isAuthenticated, setIsAuthenticated] = useState<boolean>(checkAuthenticated());
+    const navigate = useNavigate();
+    
+    // Function to handle login
+    const login = async (credentials: LoginCredentials) => {
+        setLoading(true);
+        setError(null);
         
-        // Guardar token en localStorage también
-        localStorage.setItem('token', response.token);
-        
-        // Guardar datos del usuario en localStorage si están disponibles
-        if (response.user) {
-          localStorage.setItem('userData', JSON.stringify(response.user));
-          console.log('[Auth] Datos del usuario guardados:', response.user);
+        try {
+            // Use the API login function from token.ts
+            // The token.ts file now handles the hardcoded credentials check internally
+            const response = await apiLogin(credentials);
+            
+            // Save token to localStorage
+            localStorage.setItem(TOKEN_KEY, response.token);
+            setIsAuthenticated(true);
+            console.log('Login successful:', response);
+            
+            // Redirect to dashboard after successful login
+            navigate('/dashboard');
+            return true;
+        } catch (err: any) {
+            console.error('Login failed:', err);
+            setError(err.message || 'Error al iniciar sesión');
+            return false;
+        } finally {
+            setLoading(false);
         }
-        
-        navigate('/dashboard');
-        return { success: true };
-      } else {
-        console.error('[Auth] No se recibió token en la respuesta:', response);
-        throw new Error(response.message || 'Error al iniciar sesión');
-      }
-    } catch (error: any) {
-      console.error('[Auth] Error durante el inicio de sesión:', error.response?.data || error.message);
-      return handleError(error, 'Error al iniciar sesión. Por favor, intenta nuevamente.');
-    }
-  };
-
-  return { login, validationErrors };
-}
+    };
+    
+    // Function to handle logout
+    const logout = () => {
+        localStorage.removeItem(TOKEN_KEY);
+        setIsAuthenticated(false);
+        navigate('/');
+    };
+    
+    return {
+        login,
+        logout,
+        loading,
+        error,
+        isAuthenticated
+    };
+};
