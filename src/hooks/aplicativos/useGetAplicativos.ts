@@ -3,4 +3,5 @@ import { useGetAplicativos as useApiGetAplicativos } from "@/api/aplicativos/get
 export function useGetAplicativos() {
   const { data: aplicativos = [], isLoading: loading } = useApiGetAplicativos();
   return { aplicativos, loading };
+  
 }
