@@ -1,14 +1,9 @@
-import { Action } from "@/models/action";
+import { Action } from "@/enums/action";
 import { Button, Form, Input } from "@heroui/react";
 import React from "react";
 
-interface CentroFormacion {
-  id_centro?: number;
-  nombre: string;
-}
-
 interface CentroFormacionFormProps {
-  onSave?: (item: CentroFormacion) => void;
+  onSave?: (item: SaveCentroFormacion) => void;
   onCancel?: () => void;
   actionType?: Action;
   initialData?: CentroFormacion;
@@ -29,7 +24,8 @@ const CentroFormacionForm = ({
         const data = Object.fromEntries(new FormData(e.currentTarget));
         if (onSave) {
           onSave({
-            nombre: data.nombre as string,
+            id_centro: initialData?.id_centro,
+            nombre: data.nombre as any,
           });
         }
       }}

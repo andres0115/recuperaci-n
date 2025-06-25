@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../../hooks/auth/usePostAuth";
 import { Home, Users, Shield, Layout, BookOpen, GraduationCap, Menu, LogOut,
   Building, Landmark, ChevronRight, AppWindow, Route, Lock, UserCheck,
   User, School, Briefcase, BookCopy } from "lucide-react";
@@ -7,11 +8,15 @@ import { Home, Users, Shield, Layout, BookOpen, GraduationCap, Menu, LogOut,
 const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
-  const [, setShowLogoutAlert] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { logout } = useAuth();
 
   const confirmLogout = () => {
-    setShowLogoutAlert(true);
+    // Remove credentials and token
+    logout();
+    // Redirect to login page
+    navigate('/');
   };
 
   // Función para verificar si algún elemento de un grupo está activo

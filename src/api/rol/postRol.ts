@@ -3,14 +3,7 @@ import axiosInstance from "@/api/axiosClient";
 import { Rol } from "@/types/roles";
 
 export async function postRol(data: Rol): Promise<Rol> {
-  // Transformar los datos al formato que espera TypeORM para relaciones
-  const payload = {
-    nombre: data.nombre,
-    aplicativo: { idAplicativo: data.aplicativo }
-  };
-
-  console.log('Enviando datos al servidor:', payload);
-  const response = await axiosInstance.post("/roles", payload);
+  const response = await axiosInstance.post("/roles", data);
   return response.data;
 }
 

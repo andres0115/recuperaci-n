@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useGetAccesos } from '@/hooks/accesos/useGetAccesos';
 import { usePostAcceso } from '@/hooks/accesos/usePostAccesos';
 import { usePutAcceso } from '@/hooks/accesos/usePutAccesos';
+import { useDeleteAcceso } from '@/hooks/accesos/useDeleteAcceso';
 import { Acceso } from '@/types/accesos';
 import Boton from "@/components/atomos/Boton";
 import GlobalTable, { Column } from "@/components/organismos/Table";
@@ -13,6 +14,7 @@ const accesos = () => {
   const { accesos, loading } = useGetAccesos();
   const { crearAcceso } = usePostAcceso();
   const { actualizarAcceso } = usePutAcceso();
+  const { eliminarAcceso } = useDeleteAcceso();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState<Record<string, string>>({});
@@ -33,6 +35,12 @@ const accesos = () => {
             className="bg-yellow-500 text-white px-2 py-1 text-xs"
           >
             Editar
+          </Boton>
+          <Boton 
+            onClick={() => handleDelete(item.idAcceso)} 
+            className="bg-red-500 text-white px-2 py-1 text-xs"
+          >
+            Eliminar
           </Boton>
         </div>
       )
@@ -93,13 +101,27 @@ const accesos = () => {
   const handleEdit = (acceso: Acceso) => {
     setFormData({
       token: acceso.token,
-      usuario: acceso.usuario.toString(),
+      usuario: String(acceso.usuario),
       fecha_ingreso: acceso.fecha_ingreso,
       fecha_salida: acceso.fecha_salida || '',
-      estado: acceso.estado.toString()
+      estado: String(acceso.estado)
     });
-    setEditingId(acceso.id_acceso);
+    setEditingId(acceso.idAcceso);
     setIsModalOpen(true);
+  };
+
+  // Función para eliminar un acceso
+  const handleDelete = async (id: number) => {
+    console.log('Eliminando acceso con ID:', id);
+    if (window.confirm('¿Está seguro que desea eliminar este acceso?')) {
+      try {
+        await eliminarAcceso(id);
+        alert('Acceso eliminado con éxito');
+      } catch (error) {
+        alert('Error al eliminar el acceso');
+        console.error(error);
+      }
+    }
   };
 
   // Función para crear un nuevo aplicativo
@@ -134,14 +156,16 @@ const accesos = () => {
           <div className="w-full">
             <GlobalTable
               columns={columns}
-              data={accesos.map((acceso: Acceso) => ({ ...acceso, key: acceso.id_acceso }))}
+              data={accesos
+                .filter(acc => acc && typeof acc.idAcceso === 'number')
+                .map((acc: Acceso) => ({ ...acc, key: acc.idAcceso }))}
               defaultSortColumn="token"
             />
           </div>
         )}
 
         {isModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-opacity-50 flex items-center justify-center z-50">
             <div className="w-full max-w-lg">
               <div className="bg-white p-6 rounded-lg shadow-lg w-full max-h-[90vh] overflow-y-auto relative">
                 {/* Botón X para cerrar en la esquina superior derecha */}

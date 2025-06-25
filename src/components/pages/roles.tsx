@@ -9,8 +9,6 @@ import GlobalTable, { Column } from "@/components/organismos/Table";
 import Form, { FormField } from "@/components/organismos/Form";
 import Header from "@/components/organismos/Header";
 import Sidebar from "@/components/organismos/Sidebar";
-// Import Aplicativo type for type checking
-import type { Aplicativo } from "@/types/aplicativos";
 
 const Roles = () => {
   const { roles, loading } = useGetRoles();
@@ -19,23 +17,7 @@ const Roles = () => {
   const { aplicativos, loading: loadingAplicativos } = useGetAplicativos();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [formData, setFormData] = useState<Record<string, string>>({});
-
-  // Validar y filtrar aplicativos que no tengan idAplicativo
-  const validAplicativos = (aplicativos || []).filter((app): app is Aplicativo => {
-    if (!app || typeof app.idAplicativo !== 'number') {
-      console.warn('Aplicativo inválido encontrado:', app);
-      return false;
-    }
-    return true;
-  });
-
-  // Función para obtener el nombre del aplicativo
-  const getAplicativoNombre = (aplicativoId: number): string => {
-    if (!validAplicativos.length) return 'Cargando aplicativos...';
-    const aplicativo = validAplicativos.find(app => app.idAplicativo === aplicativoId);
-    return aplicativo ? aplicativo.nombre : 'Sin aplicativo asignado';
-  };
+  const [formData, setFormData] = useState<Record<string, string>>({}); 
 
   const columns: Column<Rol & { key: number; aplicativo_nombre?: string }>[]= [
     { key: "nombre", label: "Nombre del Rol", filterable: true },
@@ -43,7 +25,35 @@ const Roles = () => {
       key: "aplicativo",
       label: "Aplicativo",
       filterable: true,
-      render: (item) => getAplicativoNombre(item.aplicativo)
+      render: (item) => {
+        // Check if aplicativos is available and is an array
+        if (!aplicativos || !Array.isArray(aplicativos)) {
+          return 'Cargando...';
+        }
+
+        // Extraer el ID del aplicativo, manejando posibles diferencias en la estructura
+        let aplicativoId: number | undefined;
+        
+        if (typeof item.aplicativo === 'object' && item.aplicativo !== null) {
+          // Si aplicativo es un objeto, extraer su ID
+          const aplicativoObj: any = item.aplicativo;
+          aplicativoId = aplicativoObj.idAplicativo || aplicativoObj.id_aplicativo;
+        } else {
+          // Si aplicativo es un ID directo
+          aplicativoId = item.aplicativo as number;
+        }
+        
+        console.log(`Buscando aplicativo con ID: ${aplicativoId}`);
+        
+        // Find the matching aplicativo
+        const aplicativoEncontrado = aplicativos.find((app: any) => {
+          const appId = app.idAplicativo || app.id_aplicativo;
+          return app && appId === aplicativoId;
+        });
+        
+        // Return the name or a default message
+        return aplicativoEncontrado ? aplicativoEncontrado.nombre : 'Desconocido';
+      }
     },
     { 
       key: "acciones", 
@@ -61,11 +71,23 @@ const Roles = () => {
     }
   ];
 
+  // Función para obtener las opciones de aplicativos para el selector
   const getAplicativoOptions = () => {
-    return validAplicativos.map(app => ({
-      value: app.idAplicativo.toString(),
-      label: `${app.nombre} (ID: ${app.idAplicativo})`
-    }));
+    if (!aplicativos || aplicativos.length === 0) {
+      return [];
+    }
+    
+    const options = aplicativos.map((aplicativo: any) => {
+      // Usar idAplicativo si existe, o id_aplicativo como fallback
+      const id = aplicativo.idAplicativo || aplicativo.id_aplicativo;
+      return {
+        value: id?.toString() || '',
+        label: aplicativo.nombre || 'Sin nombre'
+      };
+    });
+    
+    console.log('Aplicativo options:', options);
+    return options;
   };
 
   const formFieldsCreate: FormField[] = [
@@ -92,54 +114,84 @@ const Roles = () => {
 
   const handleSubmit = async (values: Record<string, string>) => {
     try {
-      if (!values.nombre_rol || values.nombre_rol.trim() === '') {
-        console.error('El nombre del rol es obligatorio');
+      console.log('Valores del formulario:', values);
+      
+      // Validar que se haya seleccionado un aplicativo
+      if (!values.aplicativo_id) {
+        alert('Debe seleccionar un aplicativo');
         return;
       }
-
+      
+      // Convertir el ID del aplicativo a número
       const aplicativoId = parseInt(values.aplicativo_id);
       if (isNaN(aplicativoId)) {
-        console.error('El ID del aplicativo no es válido');
+        alert('ID de aplicativo inválido');
         return;
       }
-
-      // Crear el objeto rol con la estructura correcta para el DTO
-      const rolData = {
-        id_rol: 0, // Este campo no se envía al crear
-        nombre: values.nombre_rol.trim(),
+      
+      // Verificar que el aplicativo exista
+      const aplicativoExiste = Array.isArray(aplicativos) ? 
+        aplicativos.some((a: any) => {
+          const id = a.idAplicativo || a.id_aplicativo;
+          return id === aplicativoId;
+        }) : false;
+      
+      if (!aplicativoExiste) {
+        console.warn('El aplicativo seleccionado no existe en los datos cargados');
+      }
+      
+      // Preparar los datos para enviar
+      const payload = {
+        nombre: values.nombre_rol,
         aplicativo: aplicativoId
       };
-
-      console.log('Intentando crear rol con datos:', {
-        nombre: rolData.nombre,
-        aplicativo: { idAplicativo: rolData.aplicativo }
-      });
-
+      
+      console.log('Payload a enviar:', payload);
+      
       if (editingId) {
-        await actualizarRol(editingId, {
-          nombre: values.nombre_rol.trim(),
-          aplicativo: aplicativoId
-        });
+        // Actualizar rol existente
+        await actualizarRol(editingId, payload);
+        alert('Rol actualizado con éxito');
       } else {
-        await crearRol(rolData);
+        // Crear nuevo rol
+        await crearRol(payload as any);
+        alert('Rol creado con éxito');
       }
+      
       setIsModalOpen(false);
       setFormData({});
       setEditingId(null);
-    } catch (error: any) {
-      console.error('Error al guardar el rol:', error);
-      if (error.response?.data) {
-        console.error('Detalles del error:', error.response.data);
-        console.error('Datos enviados:', error.config?.data);
-      }
+    } catch (error) {
+      alert('Error al guardar el rol');
+      console.error(error);
     }
   };
 
   const handleEdit = (rol: Rol & { aplicativo_nombre?: string }) => {
+    console.log('Editando rol:', rol);
+    
+    // Extraer el ID del aplicativo, manejando posibles diferencias en la estructura
+    let aplicativoId: string = '';
+    
+    if (typeof rol.aplicativo === 'object' && rol.aplicativo !== null) {
+      // Si aplicativo es un objeto, extraer su ID
+      const aplicativoObj: any = rol.aplicativo;
+      aplicativoId = (aplicativoObj.idAplicativo || aplicativoObj.id_aplicativo)?.toString() || '';
+    } else if (rol.aplicativo) {
+      // Si aplicativo es un ID directo
+      aplicativoId = rol.aplicativo.toString();
+    }
+    
     setFormData({
-      nombre_rol: rol.nombre,
-      aplicativo_id: rol.aplicativo ? rol.aplicativo.toString() : ''
+      nombre_rol: rol.nombre || '',
+      aplicativo_id: aplicativoId
     });
+    
+    console.log('Valores iniciales del formulario:', {
+      nombre_rol: rol.nombre || '',
+      aplicativo_id: aplicativoId
+    });
+    
     setEditingId(rol.id_rol);
     setIsModalOpen(true);
   };
@@ -178,11 +230,16 @@ const Roles = () => {
               columns={columns}
               data={
                 Array.isArray(roles) 
-                  ? roles.map((rol: Rol) => {
+                  ? roles.map((rol: any) => {
+                      console.log('Procesando rol:', rol);
+                      
+                      // Extraer información del rol
+                      const rolId = rol.idRol || rol.id_rol;
+                      
                       // Process each role
                       return {
                         ...rol,
-                        key: rol.id_rol || Math.random()
+                        key: rolId || Math.random()
                         // We don't need aplicativo_nombre here as we're using a render function
                       };
                     })

@@ -18,11 +18,29 @@ type Props<T extends Record<string, any>> = {
 };
 
 const Form = <T extends Record<string, any>>({ fields, onSubmit, buttonText = "Enviar", initialValues = {}, className = "" }: Props<T>) => {
-  const [formData, setFormData] = useState<Partial<T>>(initialValues);
+  // Log para depurar valores iniciales
+  console.log('Form initialValues:', initialValues);
+  
+  // Asegurarse de que los valores iniciales sean cadenas
+  const processedInitialValues: Record<string, string> = {};
+  Object.keys(initialValues).forEach(key => {
+    const value = initialValues[key];
+    processedInitialValues[key] = value !== null && value !== undefined ? String(value) : '';
+  });
+  
+  const [formData, setFormData] = useState<Record<string, string>>(processedInitialValues);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  
+  console.log('Form processed initialValues:', processedInitialValues);
+  console.log('Form formData state:', formData);
 
   const handleChange = (key: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [key]: value }));
+    console.log(`Changing field ${key} to value:`, value);
+    setFormData((prev) => {
+      const newData = { ...prev, [key]: value };
+      console.log('Updated formData:', newData);
+      return newData;
+    });
     setErrors((prev) => {
       const newErrors = { ...prev };
       delete newErrors[key];
@@ -32,6 +50,7 @@ const Form = <T extends Record<string, any>>({ fields, onSubmit, buttonText = "E
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Form submitting with data:', formData);
     onSubmit(formData as T);
   };
 
@@ -44,8 +63,11 @@ const Form = <T extends Record<string, any>>({ fields, onSubmit, buttonText = "E
             <select
               required={field.required}
               value={formData[field.key] || ""}
-              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleChange(field.key, e.target.value)}
-              className={`border p-2 rounded bg-slate-800 text-white border-slate-700 focus:border-emerald-400 focus:outline-none`}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                console.log(`Select changed: ${field.key} = ${e.target.value}`);
+                handleChange(field.key, e.target.value);
+              }}
+              className={`border p-2 rounded text-slate-950 focus:border-emerald-400 focus:outline-none`}
             >
               <option key="default-option" value="">Seleccione...</option>
               {field.options?.map((option, idx) => {
@@ -56,8 +78,10 @@ const Form = <T extends Record<string, any>>({ fields, onSubmit, buttonText = "E
                     </option>
                   );
                 } else {
+                  // Asegurarse de que el valor sea una cadena
+                  const optionValue = String(option.value);
                   return (
-                    <option key={`obj-${option.value}`} value={option.value}>
+                    <option key={`obj-${optionValue}-${idx}`} value={optionValue}>
                       {option.label}
                     </option>
                   );
@@ -70,7 +94,7 @@ const Form = <T extends Record<string, any>>({ fields, onSubmit, buttonText = "E
               required={field.required}
               value={formData[field.key] || ""}
               onChange={(e) => handleChange(field.key, e.target.value)}
-              className={`border p-2 rounded bg-slate-800 text-white border-slate-700 focus:border-emerald-400 focus:outline-none`}
+              className={`border p-2 rounded border-slate-700 focus:border-emerald-400 focus:outline-none`}
             />
           )}
           {errors[field.key] && (
