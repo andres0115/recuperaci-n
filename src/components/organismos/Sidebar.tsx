@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { Home, Users, Shield, Layout, BookOpen, GraduationCap, Menu, LogOut,
   Building, Landmark, ChevronRight, AppWindow, Route, Lock, UserCheck,
   User, School, Briefcase, BookCopy } from "lucide-react";
@@ -62,7 +62,7 @@ const Sidebar = () => {
       items: [
         { icon: <BookOpen size={20} />, label: "Cursos", path: "/cursos" },
         { icon: <GraduationCap size={20} />, label: "Matrículas", path: "/matriculas" },
-        { icon: <School size={20} />, label: "Centro Formación", path: "/centroformacion" },
+        { icon: <School size={20} />, label: "Centro Formación", path: "/centro-formacion" },
         { icon: <Briefcase size={20} />, label: "Programas", path: "/programas" },
       ],
     },
@@ -100,7 +100,8 @@ const Sidebar = () => {
         {menuGroups.map((group, index) => (
           <div key={index} className="mb-1">
             {group.standalone ? (
-              <Link to={group.path}
+              <a
+                href={group.path}
                 className={`flex items-center px-4 py-3 ${(group.path === location.pathname) 
                   ? `bg-gradient-to-r from-emerald-500 to-emerald-400 text-white shadow-md` 
                   : `hover:bg-blue-100 text-gray-700 hover:text-emerald-600`
@@ -108,7 +109,7 @@ const Sidebar = () => {
               >
                 <div className="mr-3">{group.icon}</div>
                 {!collapsed && <span>{group.label}</span>}
-              </Link>
+              </a>
             ) : (
               <div className="mb-1">
                 <div
